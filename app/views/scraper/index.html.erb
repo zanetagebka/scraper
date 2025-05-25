@@ -145,7 +145,11 @@
           const params = new URLSearchParams();
           params.append('url', url);
           Object.entries(fields).forEach(([key, value]) => {
-            params.append(`fields[${key}]`, value);
+            if (Array.isArray(value)) {
+              value.forEach(v => params.append(`fields[${key}][]`, v));
+            } else {
+              params.append(`fields[${key}]`, value);
+            }
           });
           const response = await fetch(`/data?${params.toString()}`, {
             method: 'GET',

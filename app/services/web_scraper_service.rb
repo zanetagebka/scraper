@@ -4,6 +4,9 @@ require 'nokogiri'
 class WebScraperService
   def initialize(url:, fields:)
     @url = url
+    @meta = (fields.delete('meta') || fields.delete(:meta) || [])
+    @meta = @meta.split(',') if @meta.is_a?(String)
+    @meta = @meta.map(&:strip) if @meta.is_a?(Array)
     @fields = fields
     @result = ScraperResult.new
   end
@@ -22,6 +25,18 @@ class WebScraperService
 
     doc = Nokogiri::HTML(driver.page_source)
     data = {}
+
+    if @meta.present?
+      meta_data = {}
+      Array(@meta).each do |meta_name|
+        meta_tag = doc.css('meta').find do |meta|
+          %w[name property id].any? { |attr| meta[attr].to_s.strip.downcase == meta_name.to_s.strip.downcase }
+        end
+        meta_data[meta_name] = meta_tag&.[]('content')
+      end
+      data['meta'] = meta_data
+    end
+
     @fields.each do |key, selector|
       el = doc.css(selector).first
       data[key] = el&.text&.strip
@@ -37,5 +52,5 @@ class WebScraperService
 
   private
 
-  attr_reader :url, :fields, :result
+  attr_reader :url, :fields, :meta, :result
 end 
