@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web Scraper</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.6;
+        color: #333;
+      }
+      
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #555;
+      }
+      
+      input, textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+      }
+      
+      input:focus, textarea:focus {
+        outline: none;
+        border-color: #0066cc;
+      }
+      
+      button {
+        background: #0066cc;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      button:hover {
+        background: #0052a3;
+      }
+      
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .result {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #28a745;
+      }
+      
+      .error {
+        border-left-color: #dc3545;
+        background: #fff5f5;
+      }
+      
+      pre {
+        background: white;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 0.9rem;
+      }
+      
+      .loading {
+        display: none;
+        color: #666;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Web Scraper Interface</h1>
+    <p>Extract data from web pages using CSS selectors.</p>
+    
+    <form id="scraperForm">
+      <div class="form-group">
+        <label for="url">URL to scrape:</label>
+        <input 
+          type="url" 
+          id="url" 
+          name="url" 
+          placeholder="https://example.com/page"
+          required
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="fields">Fields (JSON format):</label>
+        <textarea 
+          id="fields" 
+          name="fields" 
+          rows="8" 
+          placeholder='{"price": ".price-box__price", "rating": ".rating-value"}'
+          required
+        ></textarea>
+        <small style="color: #666; font-size: 0.9rem;">
+          Format: {"field_name": "css_selector", ...}
+        </small>
+      </div>
+      
+      <button type="submit" id="submitBtn">Extract Data</button>
+      <div class="loading" id="loading">Extracting data...</div>
+    </form>
+    
+    <div id="result" style="display: none;"></div>
+    
+    <script>
+      document.getElementById('scraperForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+        const url = document.getElementById('url').value;
+        const fieldsText = document.getElementById('fields').value;
+        
+        try {
+          const fields = JSON.parse(fieldsText);
+          
+          // Show loading state
+          submitBtn.disabled = true;
+          loading.style.display = 'block';
+          resultDiv.style.display = 'none';
+          
+          const params = new URLSearchParams();
+          params.append('url', url);
+          Object.entries(fields).forEach(([key, value]) => {
+            params.append(`fields[${key}]`, value);
+          });
+          const response = await fetch(`/data?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          // Show result
+          resultDiv.innerHTML = `
+            <div class="result ${response.ok ? '' : 'error'}">
+              <h3>${response.ok ? 'Extraction Result:' : 'Error:'}</h3>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+          `;
+          resultDiv.style.display = 'block';
+          
+        } catch (error) {
+          resultDiv.innerHTML = `
+            <div class="result error">
+              <h3>Error:</h3>
+              <pre>${error.message}</pre>
+            </div>
+          `;
+          resultDiv.style.display = 'block';
+        } finally {
+          // Reset loading state
+          submitBtn.disabled = false;
+          loading.style.display = 'none';
+        }
+      });
+    </script>
+  </body>
+</html> 
